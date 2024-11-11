@@ -1,0 +1,122 @@
+-- Step 1: Create the tables and sequence if not already created
+
+-- Create Table A
+CREATE TABLE A (
+    Rollno NUMBER(10) NOT NULL,
+    name VARCHAR2(50),
+    Date_of_issue DATE,
+    name_of_book VARCHAR2(10),
+    Status VARCHAR2(1),
+    CONSTRAINT chk1 CHECK(Status IN ('I', 'R')),
+    CONSTRAINT pk1 PRIMARY KEY (Rollno)
+);
+
+-- Create the Sequence
+CREATE SEQUENCE seq1
+MINVALUE 5
+MAXVALUE 50
+START WITH 10
+INCREMENT BY 1
+CACHE 2;
+
+-- Create Table B
+CREATE TABLE B (
+    Rollno NUMBER(10) NOT NULL,
+    Date_of_Return DATE,
+    Fine NUMBER(10)
+);
+
+-- Step 2: Insert initial data into table A
+INSERT INTO A VALUES(1, 'Sita', '12-June-2021', 'DBMS', 'I');
+INSERT INTO A VALUES(2, 'Gita', '22-June-2024', 'DBMS', 'I');
+INSERT INTO A VALUES(3, 'Swati', '20-July-2023', 'DBMS', 'I');
+INSERT INTO A VALUES(4, 'Nita', '02-July-2022', 'DBMS', 'I');
+INSERT INTO A VALUES(5, 'Sham', '22-Dec-2022', 'CN', 'I');
+INSERT INTO A VALUES(6, 'Ram', '22-Aug-2022', 'CN', 'I');
+INSERT INTO A VALUES(7, 'Aryan', '12-July-2022', 'CN', 'I');
+
+-- Step 3: Insert using sequence, but handle unique Rollno constraint
+-- Manually setting a starting rollno of 11 if not already in use
+
+DECLARE
+    v_rollno NUMBER;
+BEGIN
+    -- Get the next available Rollno by checking the current max Rollno
+    SELECT NVL(MAX(Rollno), 0) + 1 INTO v_rollno FROM A;
+
+    -- Use the next available Rollno value and insert
+    INSERT INTO A (Rollno, name, Date_of_issue, name_of_book, Status) VALUES (v_rollno, 'Chintu', '22-Dec-2022', 'TOC', 'I');
+    INSERT INTO A (Rollno, name, Date_of_issue, name_of_book, Status) VALUES (v_rollno + 1, 'Raj', '20-Sep-2023', 'TOC', 'I');
+    INSERT INTO A (Rollno, name, Date_of_issue, name_of_book, Status) VALUES (v_rollno + 2, 'Priya', '12-Nov-2023', 'TOC', 'I');
+    
+    COMMIT;
+END;
+/
+
+-- Step 4: Insert the final record using sequence (ensuring no conflict with max Rollno)
+DECLARE
+    v_rollno NUMBER;
+BEGIN
+    -- Get the next available Rollno by checking the current max Rollno
+    SELECT NVL(MAX(Rollno), 0) + 1 INTO v_rollno FROM A;
+
+    -- Insert a new record with the available Rollno
+    INSERT INTO A (Rollno, name, Date_of_issue, name_of_book, Status) 
+    VALUES (v_rollno, 'Chintu', '22-Dec-2022', 'TOC', 'I');
+
+    COMMIT;
+END;
+/
+
+-- Step 5: Check inserted data
+SELECT * FROM A;
+
+-- Step 6: Correct the PL/SQL block for fine calculation and book return
+
+DECLARE
+    roll NUMBER(10); -- Roll number of the student
+    bkn VARCHAR2(50); -- Name of the book
+    idate DATE; -- Date of issue
+    days NUMBER(5); -- Number of days the book is overdue
+    fineamt NUMBER(5); -- Fine amount
+BEGIN
+    -- Set values for testing (you can replace these with actual inputs)
+    roll := 1; -- Example Rollno
+    bkn := 'DBMS'; -- Example book name
+
+    -- Fetch the issue date for the book
+    SELECT Date_of_issue INTO idate FROM A WHERE Rollno = roll AND name_of_book = bkn;
+
+    -- Output the Roll Number and Book Name
+    dbms_output.put_line('Roll Number: ' || roll);
+    dbms_output.put_line('Book Name  : ' || bkn);
+    dbms_output.put_line('Issue Date : ' || idate);
+
+    -- Calculate the number of overdue days
+    SELECT trunc(sysdate - idate) INTO days FROM DUAL;
+    dbms_output.put_line('No of Days : ' || days);
+
+    -- Calculate the fine based on the overdue days
+    IF (days > 15) AND (days < 30) THEN
+        fineamt := days * 5;  -- Fine of 5 units per day for overdue between 15 and 30 days
+    ELSIF (days >= 30) THEN
+        fineamt := days * 10; -- Fine of 10 units per day for overdue 30 days or more
+    END IF;
+
+    -- Output the calculated fine
+    dbms_output.put_line('FINE: ' || fineamt);
+
+    -- Insert the fine details into table B
+    INSERT INTO B (Rollno, Date_of_Return, Fine) VALUES (roll, sysdate, fineamt);
+
+    -- Update the status of the book to 'R' (returned)
+    UPDATE A SET Status = 'R' WHERE Rollno = roll AND name_of_book = bkn;
+
+    -- Commit changes
+    COMMIT;
+END;
+/
+
+-- Step 7: Check fine details and updated status
+SELECT * FROM B;
+SELECT * FROM A;

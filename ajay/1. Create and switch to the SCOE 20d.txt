@@ -1,0 +1,111 @@
+// 1. Create and switch to the SCOE database
+use SCOE;
+
+// 2. Create collections
+db.createCollection("Teachers");
+db.createCollection("Students");
+
+// 3. Insert sample data into Teachers collection
+db.Teachers.insertMany([
+  { 
+    Tname: "Praveen", 
+    dno: 101, 
+    dname: "Computer", 
+    experience: 5, 
+    salary: 30000, 
+    date_of_joining: new Date("2019-06-15") 
+  },
+  { 
+    Tname: "Ravi", 
+    dno: 102, 
+    dname: "IT", 
+    experience: 8, 
+    salary: 25000, 
+    date_of_joining: new Date("2017-03-01") 
+  },
+  { 
+    Tname: "Sita", 
+    dno: 103, 
+    dname: "e&TC", 
+    experience: 3, 
+    salary: 22000, 
+    date_of_joining: new Date("2021-01-10") 
+  },
+  { 
+    Tname: "Anil", 
+    dno: 104, 
+    dname: "Computer", 
+    experience: 7, 
+    salary: 35000, 
+    date_of_joining: new Date("2016-08-15") 
+  },
+  { 
+    Tname: "Sunil", 
+    dno: 105, 
+    dname: "IT", 
+    experience: 4, 
+    salary: 28000, 
+    date_of_joining: new Date("2020-09-22") 
+  }
+]);
+
+// 4. Insert sample data into Students collection
+db.Students.insertMany([
+  { Sname: "John", roll_no: 1, class: "B.Tech" },
+  { Sname: "Jane", roll_no: 2, class: "M.Tech" },
+  { Sname: "Jim", roll_no: 3, class: "B.Tech" },
+  { Sname: "Sita", roll_no: 25, class: "M.Tech" },
+  { Sname: "XYZ", roll_no: 10, class: "B.Tech" }
+]);
+
+// 5. Find the information about two teachers
+db.Teachers.find().limit(2);
+
+// 6. Find the information about all teachers in the Computer department
+db.Teachers.find({ dname: "Computer" });
+
+// 7. Find the information about all teachers in the Computer, IT, and e&TC departments
+db.Teachers.find({ dname: { $in: ["Computer", "IT", "e&TC"] } });
+
+// 8. Find the information about all teachers in the Computer, IT, and E&TC departments with salary >= 25000
+db.Teachers.find({
+  dname: { $in: ["Computer", "IT", "e&TC"] },
+  salary: { $gte: 25000 }
+});
+
+// 9. Find the student information where roll_no = 25 or Sname = "XYZ"
+db.Students.find({
+  $or: [
+    { roll_no: 25 },
+    { Sname: "XYZ" }
+  ]
+});
+
+// 10. Update the experience of teacher "Praveen" to 10 years, and insert if not present
+db.Teachers.updateOne(
+  { Tname: "Praveen" },
+  { $set: { experience: 10 } },
+  { upsert: true }
+);
+
+// 11. Update the department of all teachers working in the IT department to COMP
+db.Teachers.updateMany(
+  { dname: "IT" },
+  { $set: { dname: "COMP" } }
+);
+
+// 12. Find teachers' name and their experience
+db.Teachers.find({}, { Tname: 1, experience: 1, _id: 0 });
+
+// 13. Insert one entry in the Department collection using `save()`
+db.Department.save({
+  dname: "Mechanical",
+  location: "Building 5",
+  num_of_faculty: 10
+});
+
+// 14. Delete all documents from the Teachers collection having IT department
+db.Teachers.deleteMany({ dname: "IT" });
+
+// 15. Display the first 5 documents in the Teachers collection in ascending order of `date_of_joining` using `pretty()`
+db.Teachers.find().sort({ date_of_joining: 1 }).limit(5).pretty();

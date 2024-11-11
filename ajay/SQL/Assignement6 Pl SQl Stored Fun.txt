@@ -1,0 +1,66 @@
+-- Create Table X
+CREATE TABLE X 
+( 
+    Roll_no NUMBER(10) NOT NULL,  
+    name    VARCHAR2(50),  
+    Marks   NUMBER(10), 
+    CONSTRAINT pk1_x PRIMARY KEY (Roll_no) 
+); 
+
+-- Create Table Y
+CREATE TABLE Y 
+( 
+    Roll_no NUMBER(10) NOT NULL,  
+    name    VARCHAR2(50),  
+    marks   NUMBER(10), 
+    result  VARCHAR2(50) 
+); 
+
+-- Insert data into X
+INSERT INTO X VALUES (2001, 'xyz', 999); 
+INSERT INTO X VALUES (2002, 'pqr', 500); 
+
+-- Create or replace the procedure to grade students
+CREATE OR REPLACE PROCEDURE Grade(rnum IN NUMBER) AS 
+    mrks  NUMBER; 
+    s_name VARCHAR2(50); 
+    GRADE  VARCHAR2(50); 
+BEGIN 
+    -- Fetch student's name and marks from table X based on Roll_no
+    SELECT name, marks INTO s_name, mrks FROM X WHERE Roll_no = rnum; 
+
+    -- Assign grade based on marks
+    IF mrks <= 1500 AND mrks >= 990 THEN 
+        GRADE := 'DISTINCTION'; 
+    ELSIF mrks <= 989 AND mrks >= 900 THEN 
+        GRADE := 'FIRST CLASS'; 
+    ELSIF mrks <= 899 AND mrks >= 825 THEN 
+        GRADE := 'HIGHER SECOND CLASS'; 
+    ELSE 
+        GRADE := 'PASS CLASS';  
+    END IF; 
+
+    -- Insert the student's grade into table Y
+    INSERT INTO Y VALUES (rnum, s_name, mrks, GRADE); 
+
+    -- Output the result to the console (using dbms_output)
+    dbms_output.put_line('ROLL_NO' || CHR(9) || 'NAME' || CHR(9) || 'MARKS' || CHR(9) || 'GRADE'); 
+    dbms_output.put_line(rnum || CHR(9) || s_name || CHR(9) || mrks || CHR(9) || GRADE); 
+END; 
+/ 
+
+-- Declare block to call the procedure
+DECLARE 
+    rollnumber NUMBER; 
+BEGIN 
+    -- Assign roll number to test
+    rollnumber := 2001; 
+    dbms_output.put_line('ENTER THE ROLL NUMBER OF THE STUDENT: ' || rollnumber); 
+    -- Call the Grade procedure
+    Grade(rollnumber); 
+END; 
+/
+
+-- Check the contents of tables X and Y to confirm changes
+SELECT * FROM Y; 
+SELECT * FROM X;

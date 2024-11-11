@@ -1,0 +1,131 @@
+--BookAuthor Publidher--
+
+-- Step 1: Create the tables
+
+-- Create Publisher table
+CREATE TABLE PUBLISHER (
+    PID INT PRIMARY KEY,
+    PNAME VARCHAR2(100),
+    ADDRESS VARCHAR2(255),
+    STATE VARCHAR2(50),
+    PHONE VARCHAR2(15),
+    EMAILID VARCHAR2(100)
+);
+
+-- Create Book table
+CREATE TABLE BOOK (
+    ISBN VARCHAR2(13) PRIMARY KEY,
+    BOOK_TITLE VARCHAR2(255),
+    CATEGORY VARCHAR2(50),
+    PRICE NUMBER(10, 2),
+    COPYRIGHT_DATE DATE,
+    YEAR INT,
+    PAGE_COUNT INT,
+    PID INT,
+    CONSTRAINT fk_publisher FOREIGN KEY (PID) REFERENCES PUBLISHER(PID)
+);
+
+-- Create Author table
+CREATE TABLE AUTHOR (
+    AID INT PRIMARY KEY,
+    ANAME VARCHAR2(100),
+    STATE VARCHAR2(50),
+    CITY VARCHAR2(50),
+    ZIP VARCHAR2(10),
+    PHONE VARCHAR2(15),
+    URL VARCHAR2(100)
+);
+
+-- Create Author_Book table to establish many-to-many relationship
+CREATE TABLE AUTHOR_BOOK (
+    AID INT,
+    ISBN VARCHAR2(13),
+    PRIMARY KEY (AID, ISBN),
+    CONSTRAINT fk_author FOREIGN KEY (AID) REFERENCES AUTHOR(AID),
+    CONSTRAINT fk_book FOREIGN KEY (ISBN) REFERENCES BOOK(ISBN)
+);
+
+-- Create Review table
+CREATE TABLE REVIEW (
+    RID INT PRIMARY KEY,
+    ISBN VARCHAR2(13),
+    RATING NUMBER(2),
+    CONSTRAINT fk_review_book FOREIGN KEY (ISBN) REFERENCES BOOK(ISBN)
+);
+
+-- Step 2: Queries for the tasks
+
+-- 1. Retrieve city, phone, and URL of author whose name is "CHETAN BHAGAT".
+SELECT CITY, PHONE, URL
+FROM AUTHOR
+WHERE ANAME = 'CHETAN BHAGAT';
+
+-- 2. Retrieve book title, reviewable ID, and rating of all books.
+SELECT B.BOOK_TITLE, R.RID, R.RATING
+FROM BOOK B
+JOIN REVIEW R ON B.ISBN = R.ISBN;
+
+-- 3. Retrieve book title, price, author name, and URL for publishers whose name is "MEHTA".
+SELECT B.BOOK_TITLE, B.PRICE, A.ANAME, A.URL
+FROM BOOK B
+JOIN AUTHOR_BOOK AB ON B.ISBN = AB.ISBN
+JOIN AUTHOR A ON AB.AID = A.AID
+JOIN PUBLISHER P ON B.PID = P.PID
+WHERE P.PNAME = 'MEHTA';
+
+-- 4. In the PUBLISHER table, change the phone number of "MEHTA" to "123456".
+UPDATE PUBLISHER
+SET PHONE = '123456'
+WHERE PNAME = 'MEHTA';
+
+-- 5. Calculate and display the average, maximum, and minimum price of books for each publisher.
+SELECT P.PNAME, 
+       AVG(B.PRICE) AS AVG_PRICE, 
+       MAX(B.PRICE) AS MAX_PRICE, 
+       MIN(B.PRICE) AS MIN_PRICE
+FROM PUBLISHER P
+JOIN BOOK B ON P.PID = B.PID
+GROUP BY P.PNAME;
+
+-- 6. Delete details of all books having a page count less than 100.
+DELETE FROM BOOK
+WHERE PAGE_COUNT < 100;
+
+-- 7. Retrieve details of all authors residing in the city "Pune" and whose name begins with the letter "C".
+SELECT * 
+FROM AUTHOR
+WHERE CITY = 'Pune' AND ANAME LIKE 'C%';
+
+-- 8. Retrieve details of authors residing in the same city as "Korth".
+SELECT * 
+FROM AUTHOR
+WHERE CITY = (SELECT CITY FROM AUTHOR WHERE CITY = 'Korth' AND ROWNUM = 1);
+
+-- 9. Create a procedure to update the page count of a book for a given ISBN.
+CREATE OR REPLACE PROCEDURE update_page_count(p_isbn IN VARCHAR2, p_page_count IN INT) AS
+BEGIN
+    UPDATE BOOK
+    SET PAGE_COUNT = p_page_count
+    WHERE ISBN = p_isbn;
+    COMMIT;
+END;
+/
+
+-- 10. Create a function that returns the price of a book with a given ISBN.
+CREATE OR REPLACE FUNCTION get_book_price(p_isbn IN VARCHAR2) RETURN NUMBER IS
+    v_price NUMBER(10, 2);
+BEGIN
+    SELECT PRICE INTO v_price
+    FROM BOOK
+    WHERE ISBN = p_isbn;
+    
+    RETURN v_price;
+END;
+/
+
+-- Example to use the Procedure and Function:
+-- To call the procedure to update the page count for a book with ISBN '978-3-16-148410-0':
+-- EXEC update_page_count('978-3-16-148410-0', 120);
+
+-- To call the function to get the price of a book with ISBN '978-3-16-148410-0':
+-- SELECT get_book_price('978-3-16-148410-0') FROM dual;

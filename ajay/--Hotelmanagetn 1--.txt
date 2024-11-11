@@ -1,0 +1,120 @@
+--Hotelmanagetn 1--
+-- Step 1: Create the HotelManagement database (only needed in some DBMS like MySQL)
+-- For Oracle, a schema is already created by default, so we do not need to create a separate database.
+-- You can create tables within an existing schema or use an existing user.
+
+-- Create the tables
+CREATE TABLE Hotel (
+    HotelNo INT PRIMARY KEY,
+    Name VARCHAR(100),
+    City VARCHAR(50)
+);
+
+CREATE TABLE Room (
+    RoomNo INT PRIMARY KEY,
+    HotelNo INT,
+    Type VARCHAR(50),
+    Price DECIMAL(10, 2),
+    FOREIGN KEY (HotelNo) REFERENCES Hotel(HotelNo)
+);
+
+CREATE TABLE Guest (
+    GuestNo INT PRIMARY KEY,
+    GuestName VARCHAR(100),
+    GuestAddress VARCHAR(255)
+);
+
+CREATE TABLE Booking (
+    HotelNo INT,
+    GuestNo INT,
+    DateFrom DATE,
+    DateTo DATE,
+    RoomNo INT,
+    PRIMARY KEY (HotelNo, GuestNo, RoomNo),
+    FOREIGN KEY (HotelNo) REFERENCES Hotel(HotelNo),
+    FOREIGN KEY (GuestNo) REFERENCES Guest(GuestNo),
+    FOREIGN KEY (RoomNo) REFERENCES Room(RoomNo)
+);
+
+-- Step 2: Insert sample data into tables
+
+INSERT INTO Hotel (HotelNo, Name, City) VALUES (1, 'Grosvenor', 'London');
+INSERT INTO Hotel (HotelNo, Name, City) VALUES (2, 'Hilton', 'New York');
+INSERT INTO Hotel (HotelNo, Name, City) VALUES (3, 'Marriott', 'London');
+INSERT INTO Hotel (HotelNo, Name, City) VALUES (4, 'Park Plaza', 'London');
+
+INSERT INTO Room (RoomNo, HotelNo, Type, Price) VALUES (101, 1, 'Single', 100.00);
+INSERT INTO Room (RoomNo, HotelNo, Type, Price) VALUES (102, 1, 'Double', 150.00);
+INSERT INTO Room (RoomNo, HotelNo, Type, Price) VALUES (103, 2, 'Suite', 250.00);
+INSERT INTO Room (RoomNo, HotelNo, Type, Price) VALUES (104, 3, 'Single', 80.00);
+INSERT INTO Room (RoomNo, HotelNo, Type, Price) VALUES (105, 4, 'Double', 120.00);
+
+INSERT INTO Guest (GuestNo, GuestName, GuestAddress) VALUES (1, 'Alice Brown', '123 Baker Street, London');
+INSERT INTO Guest (GuestNo, GuestName, GuestAddress) VALUES (2, 'Bob Smith', '456 Queen’s Road, New York');
+INSERT INTO Guest (GuestNo, GuestName, GuestAddress) VALUES (3, 'Charlie Green', '789 King’s Way, London');
+
+INSERT INTO Booking (HotelNo, GuestNo, DateFrom, DateTo, RoomNo) VALUES (1, 1, TO_DATE('2024-10-01', 'YYYY-MM-DD'), TO_DATE('2024-10-05', 'YYYY-MM-DD'), 101);
+INSERT INTO Booking (HotelNo, GuestNo, DateFrom, DateTo, RoomNo) VALUES (1, 2, TO_DATE('2024-10-03', 'YYYY-MM-DD'), TO_DATE('2024-10-07', 'YYYY-MM-DD'), 102);
+INSERT INTO Booking (HotelNo, GuestNo, DateFrom, DateTo, RoomNo) VALUES (2, 3, TO_DATE('2024-10-02', 'YYYY-MM-DD'), TO_DATE('2024-10-04', 'YYYY-MM-DD'), 103);
+
+-- Step 3: Perform the SQL queries
+
+-- Query 1: List full details of all hotels
+SELECT * FROM Hotel;
+
+-- Query 2: How many hotels are there?
+SELECT COUNT(*) AS TotalHotels FROM Hotel;
+
+-- Query 3: List the price and type of all rooms at the Grosvenor Hotel
+SELECT Room.Type, Room.Price
+FROM Room
+JOIN Hotel ON Room.HotelNo = Hotel.HotelNo
+WHERE Hotel.Name = 'Grosvenor';
+
+-- Query 4: List the number of rooms in each hotel
+SELECT Hotel.Name, COUNT(Room.RoomNo) AS NumberOfRooms
+FROM Room
+JOIN Hotel ON Room.HotelNo = Hotel.HotelNo
+GROUP BY Hotel.Name;
+
+-- Query 5: List all guests currently staying at the Grosvenor Hotel
+SELECT Guest.GuestName, Guest.GuestAddress
+FROM Guest
+JOIN Booking ON Guest.GuestNo = Booking.GuestNo
+JOIN Hotel ON Booking.HotelNo = Hotel.HotelNo
+WHERE Hotel.Name = 'Grosvenor'
+  AND CURRENT_DATE BETWEEN Booking.DateFrom AND Booking.DateTo;
+
+-- Query 6: List all double or family rooms with a price below £40.00 per night, in ascending order of price
+SELECT Room.Type, Room.Price
+FROM Room
+WHERE (Room.Type = 'Double' OR Room.Type = 'Family')
+  AND Room.Price < 40.00
+ORDER BY Room.Price ASC;
+
+-- Query 7: How many different guests have made bookings for August?
+SELECT COUNT(DISTINCT Booking.GuestNo) AS UniqueGuestsInAugust
+FROM Booking
+WHERE EXTRACT(MONTH FROM Booking.DateFrom) = 8
+   OR EXTRACT(MONTH FROM Booking.DateTo) = 8;
+
+-- Query 8: What is the total income from bookings for the Grosvenor Hotel today?
+SELECT SUM(Room.Price) AS TotalIncomeToday
+FROM Booking
+JOIN Room ON Booking.RoomNo = Room.RoomNo
+JOIN Hotel ON Booking.HotelNo = Hotel.HotelNo
+WHERE Hotel.Name = 'Grosvenor'
+  AND CURRENT_DATE BETWEEN Booking.DateFrom AND Booking.DateTo;
+
+-- Query 9: What is the most commonly booked room type for each hotel in London?
+SELECT Hotel.Name, Room.Type, COUNT(Booking.RoomNo) AS RoomCount
+FROM Booking
+JOIN Room ON Booking.RoomNo = Room.RoomNo
+JOIN Hotel ON Booking.HotelNo = Hotel.HotelNo
+WHERE Hotel.City = 'London'
+GROUP BY Hotel.Name, Room.Type
+ORDER BY Hotel.Name, RoomCount DESC;
+
+-- Query 10: Update the price of all rooms by 5%.
+UPDATE Room
+SET Price = Price * 1.05;

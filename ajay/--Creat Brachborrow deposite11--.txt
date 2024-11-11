@@ -1,0 +1,110 @@
+--Creat Brachborrow deposite11--
+
+-- Create Branch Table
+CREATE TABLE Branch (
+    bname VARCHAR(50) PRIMARY KEY,
+    city VARCHAR(50)
+);
+
+-- Create Customers Table
+CREATE TABLE Customers (
+    cname VARCHAR(50) PRIMARY KEY,
+    city VARCHAR(50)
+);
+
+-- Create Deposit Table
+CREATE TABLE Deposit (
+    actno INT PRIMARY KEY,
+    cname VARCHAR(50),
+    bname VARCHAR(50),
+    amount DECIMAL(10, 2),
+    adate DATE,
+    FOREIGN KEY (bname) REFERENCES Branch(bname),
+    FOREIGN KEY (cname) REFERENCES Customers(cname)
+);
+
+-- Create Borrow Table
+CREATE TABLE Borrow (
+    loanno INT PRIMARY KEY,
+    cname VARCHAR(50),
+    bname VARCHAR(50),
+    amount DECIMAL(10, 2),
+    FOREIGN KEY (bname) REFERENCES Branch(bname),
+    FOREIGN KEY (cname) REFERENCES Customers(cname)
+);
+
+-- Insert data into Branch Table
+INSERT INTO Branch (bname, city) VALUES
+('MainBranch', 'Bombay'),
+('SubBranch', 'Nagpur'),
+('EastBranch', 'Pune');
+
+-- Insert data into Customers Table
+INSERT INTO Customers (cname, city) VALUES
+('Sunil', 'Bombay'),
+('Anil', 'Nagpur'),
+('Raj', 'Pune'),
+('Sita', 'Nagpur'),
+('Ravi', 'Bombay');
+
+-- Insert data into Deposit Table with correct date format
+INSERT INTO Deposit (actno, cname, bname, amount, adate) VALUES
+(101, 'Sunil', 'MainBranch', 5000.00, TO_DATE('2023-10-01', 'YYYY-MM-DD')),
+(102, 'Anil', 'SubBranch', 2000.00, TO_DATE('2023-11-01', 'YYYY-MM-DD')),
+(103, 'Raj', 'EastBranch', 1500.00, TO_DATE('2023-09-15', 'YYYY-MM-DD')),
+(104, 'Ravi', 'MainBranch', 3000.00, TO_DATE('2023-10-10', 'YYYY-MM-DD'));
+
+-- Insert data into Borrow Table
+INSERT INTO Borrow (loanno, cname, bname, amount) VALUES
+(1, 'Sunil', 'MainBranch', 10000.00),
+(2, 'Anil', 'SubBranch', 5000.00),
+(3, 'Ravi', 'MainBranch', 7000.00);
+
+-- Create the index on cname column (drop the existing index if necessary)
+BEGIN
+   EXECUTE IMMEDIATE 'DROP INDEX idx_deposit_cname';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -01418 THEN -- Ignore "index does not exist" error
+         RAISE;
+      END IF;
+END;
+/
+
+-- Create the new index on cname column of Deposit table
+CREATE INDEX idx_deposit_cname ON Deposit (cname);
+
+-- Queries for solving customer-related questions
+
+-- 1. Display customer name having living city "Bombay" and branch city "Nagpur"
+SELECT c.cname
+FROM Customers c
+JOIN Deposit d ON c.cname = d.cname
+JOIN Branch b ON d.bname = b.bname
+WHERE c.city = 'Bombay' AND b.city = 'Nagpur';
+
+-- 2. Display customer name having same living city as their branch city
+SELECT c.cname
+FROM Customers c
+JOIN Deposit d ON c.cname = d.cname
+JOIN Branch b ON d.bname = b.bname
+WHERE c.city = b.city;
+
+-- 3. Display customer name who are borrowers as well as depositors and having living city "Nagpur"
+SELECT DISTINCT c.cname
+FROM Customers c
+JOIN Deposit d ON c.cname = d.cname
+JOIN Borrow b ON c.cname = b.cname
+WHERE c.city = 'Nagpur';
+
+-- 4. Display borrower names having deposit amount greater than 1000 and loan amount greater than 2000
+SELECT DISTINCT b.cname
+FROM Borrow b
+JOIN Deposit d ON b.cname = d.cname
+WHERE d.amount > 1000 AND b.amount > 2000;
+
+-- 5. Display customer name living in the city where the branch of depositor "Sunil" is located
+SELECT c.cname
+FROM Customers c
+JOIN Deposit d ON c.cname = d.cname
+WHERE c.city = (SELECT b.city FROM Branch b JOIN Deposit d2 ON b.bname = d2.bname WHERE d2.cname = 'Sunil');

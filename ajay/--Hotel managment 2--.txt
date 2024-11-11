@@ -1,0 +1,131 @@
+--Hotel managment--
+
+-- Step 1: Create the database
+-- In Oracle, database creation and usage is typically handled at the admin level, 
+-- so you would need to use an existing schema. Hence, we can skip `CREATE DATABASE`.
+
+-- Step 2: Create tables
+CREATE TABLE Hotel (
+    HotelNo INT PRIMARY KEY,
+    Name VARCHAR2(100),
+    City VARCHAR2(50)
+);
+
+CREATE TABLE Room (
+    RoomNo INT PRIMARY KEY,
+    HotelNo INT,
+    Type VARCHAR2(50),
+    Price NUMBER(10, 2),
+    CONSTRAINT fk_Hotel FOREIGN KEY (HotelNo) REFERENCES Hotel(HotelNo)
+);
+
+CREATE TABLE Guest (
+    GuestNo INT PRIMARY KEY,
+    GuestName VARCHAR2(100),
+    GuestAddress VARCHAR2(255)
+);
+
+CREATE TABLE Booking (
+    HotelNo INT,
+    GuestNo INT,
+    DateFrom DATE,
+    DateTo DATE,
+    RoomNo INT,
+    PRIMARY KEY (HotelNo, GuestNo, RoomNo),
+    CONSTRAINT fk_Booking_Hotel FOREIGN KEY (HotelNo) REFERENCES Hotel(HotelNo),
+    CONSTRAINT fk_Booking_Guest FOREIGN KEY (GuestNo) REFERENCES Guest(GuestNo),
+    CONSTRAINT fk_Booking_Room FOREIGN KEY (RoomNo) REFERENCES Room(RoomNo)
+);
+
+-- Step 3: Insert sample data
+INSERT INTO Hotel (HotelNo, Name, City) VALUES
+(1, 'Grosvenor', 'London'),
+(2, 'Hilton', 'London'),
+(3, 'Marriott', 'New York'),
+(4, 'Park Plaza', 'London');
+
+INSERT INTO Room (RoomNo, HotelNo, Type, Price) VALUES
+(101, 1, 'Single', 100.00),
+(102, 1, 'Double', 150.00),
+(103, 2, 'Suite', 250.00),
+(104, 3, 'Single', 80.00),
+(105, 4, 'Double', 120.00);
+
+INSERT INTO Guest (GuestNo, GuestName, GuestAddress) VALUES
+(1, 'Alice Brown', '123 Baker Street, London'),
+(2, 'Bob Smith', '456 Queen’s Road, New York'),
+(3, 'Charlie Green', '789 King’s Way, London');
+
+INSERT INTO Booking (HotelNo, GuestNo, DateFrom, DateTo, RoomNo) VALUES
+(1, 1, TO_DATE('2024-10-01', 'YYYY-MM-DD'), TO_DATE('2024-10-05', 'YYYY-MM-DD'), 101),
+(1, 2, TO_DATE('2024-10-03', 'YYYY-MM-DD'), TO_DATE('2024-10-07', 'YYYY-MM-DD'), 102),
+(2, 3, TO_DATE('2024-10-02', 'YYYY-MM-DD'), TO_DATE('2024-10-04', 'YYYY-MM-DD'), 103);
+
+-- Step 4: Run the queries for the requested tasks
+
+-- 1. List full details of all hotels
+SELECT * FROM Hotel;
+
+-- 2. List full details of all hotels in London
+SELECT * FROM Hotel
+WHERE City = 'London';
+
+-- 3. List all guests currently staying at the Grosvenor Hotel
+SELECT Guest.GuestName, Guest.GuestAddress
+FROM Guest
+JOIN Booking ON Guest.GuestNo = Booking.GuestNo
+JOIN Hotel ON Booking.HotelNo = Hotel.HotelNo
+WHERE Hotel.Name = 'Grosvenor' AND SYSDATE BETWEEN Booking.DateFrom AND Booking.DateTo;
+
+-- 4. List the names and addresses of all guests in London, alphabetically ordered by name
+SELECT Guest.GuestName, Guest.GuestAddress
+FROM Guest
+JOIN Booking ON Guest.GuestNo = Booking.GuestNo
+JOIN Hotel ON Booking.HotelNo = Hotel.HotelNo
+WHERE Hotel.City = 'London'
+ORDER BY Guest.GuestName;
+
+-- 5. List the bookings for which no DateTo has been specified
+SELECT * FROM Booking
+WHERE DateTo IS NULL;
+
+-- 6. How many hotels are there?
+SELECT COUNT(*) AS HotelCount
+FROM Hotel;
+
+-- 7. List the rooms that are currently unoccupied at the Grosvenor Hotel
+SELECT Room.RoomNo, Room.Type, Room.Price
+FROM Room
+LEFT JOIN Booking ON Room.RoomNo = Booking.RoomNo AND Booking.HotelNo = Room.HotelNo
+WHERE Room.HotelNo = (SELECT HotelNo FROM Hotel WHERE Name = 'Grosvenor')
+AND (Booking.RoomNo IS NULL OR SYSDATE NOT BETWEEN Booking.DateFrom AND Booking.DateTo);
+
+-- 8. What is the lost income from unoccupied rooms at each hotel today?
+SELECT Hotel.Name, SUM(Room.Price) AS LostIncome
+FROM Hotel
+JOIN Room ON Hotel.HotelNo = Room.HotelNo
+LEFT JOIN Booking ON Room.RoomNo = Booking.RoomNo AND Booking.HotelNo = Room.HotelNo
+WHERE (Booking.RoomNo IS NULL OR SYSDATE NOT BETWEEN Booking.DateFrom AND Booking.DateTo)
+GROUP BY Hotel.Name;
+
+-- 9. Create index on RoomNo field
+CREATE INDEX idx_room_no ON Room(RoomNo);
+
+-- Show the performance of the query with the index
+EXPLAIN PLAN FOR
+SELECT * FROM Room WHERE RoomNo = 101;
+
+-- Display the explain plan output
+SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+-- 10. Create a view for booking summary and query it
+CREATE VIEW BookingSummary AS
+SELECT Guest.GuestName, Hotel.Name AS HotelName, Room.Type AS RoomType,
+       Booking.DateFrom, Booking.DateTo
+FROM Booking
+JOIN Guest ON Booking.GuestNo = Guest.GuestNo
+JOIN Room ON Booking.RoomNo = Room.RoomNo
+JOIN Hotel ON Booking.HotelNo = Hotel.HotelNo;
+
+-- Query the view
+SELECT * FROM BookingSummary;

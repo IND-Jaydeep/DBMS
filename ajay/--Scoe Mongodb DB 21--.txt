@@ -1,0 +1,83 @@
+--Scoe Mongodb DB 21--
+
+
+// Connect to MongoDB
+use schoolDB;  // Create or switch to 'schoolDB' database
+
+// Create Collections
+db.createCollection("Teachers");
+db.createCollection("Students");
+
+// Inserting sample data into Teachers Collection
+db.Teachers.insertMany([
+    { Tname: "Praveen", dno: 1, dname: "Computer", experience: 5, salary: 15000, date_of_joining: new Date("2018-01-15") },
+    { Tname: "Amit", dno: 2, dname: "IT", experience: 3, salary: 12000, date_of_joining: new Date("2020-03-10") },
+    { Tname: "Sneha", dno: 3, dname: "E&TC", experience: 8, salary: 18000, date_of_joining: new Date("2015-07-01") },
+    { Tname: "Ravi", dno: 1, dname: "Computer", experience: 6, salary: 11000, date_of_joining: new Date("2017-06-21") },
+    { Tname: "Nina", dno: 2, dname: "IT", experience: 4, salary: 10000, date_of_joining: new Date("2019-08-25") },
+    { Tname: "John", dno: 3, dname: "E&TC", experience: 2, salary: 9000, date_of_joining: new Date("2021-05-18") }
+]);
+
+// Inserting sample data into Students Collection
+db.Students.insertMany([
+    { Sname: "Raj", roll_no: 1, class: "A" },
+    { Sname: "Sam", roll_no: 2, class: "B" },
+    { Sname: "Sita", roll_no: 3, class: "A" },
+    { Sname: "Ravi", roll_no: 4, class: "C" },
+    { Sname: "XYZ", roll_no: 5, class: "B" }
+]);
+
+// 1. Find the information about all teachers
+db.Teachers.find();
+
+// 2. Find the average salary of teachers in the Computer department
+db.Teachers.aggregate([
+    { $match: { dname: "Computer" } },
+    { $group: { _id: null, avgSalary: { $avg: "$salary" } } }
+]);
+
+// 3. Find the minimum and maximum salary of E&TC department teachers
+db.Teachers.aggregate([
+    { $match: { dname: "E&TC" } },
+    { $group: { _id: null, minSalary: { $min: "$salary" }, maxSalary: { $max: "$salary" } } }
+]);
+
+// 4. Find the information about all teachers of Computer, IT, and E&TC department having salary greater than or equal to 10000/-
+db.Teachers.find({
+    dname: { $in: ["Computer", "IT", "E&TC"] },
+    salary: { $gte: 10000 }
+});
+
+// 5. Find the student information having roll_no = 2 or Sname = "XYZ"
+db.Students.find({
+    $or: [
+        { roll_no: 2 },
+        { Sname: "XYZ" }
+    ]
+});
+
+// 6. Update the experience of teacher "Praveen" to 10 years, if the entry does not exist, insert as new entry
+db.Teachers.updateOne(
+    { Tname: "Praveen" },
+    { $set: { experience: 10 } },
+    { upsert: true }
+);
+
+// 7. Update the department of all teachers working in the IT department to COMP
+db.Teachers.updateMany(
+    { dname: "IT" },
+    { $set: { dname: "COMP" } }
+);
+
+// 8. Find the teachers' name and their experience from the Teachers collection
+db.Teachers.find({}, { Tname: 1, experience: 1 });
+
+// 9. Using save() method insert one entry in the department collection
+// Assuming you have a collection named "Departments", first create it and then use save().
+db.createCollection("Departments");
+db.Departments.save({ dname: "COMP", dno: 1 });
+
+// 10. Find the total salary of all teachers
+db.Teachers.aggregate([
+    { $group: { _id: null, totalSalary: { $sum: "$salary" } } }
+]);

@@ -1,0 +1,34 @@
+---the zip Mmongo23--
+
+// Step 1: Import zip.json (Done using mongoimport command, not part of this script)
+// Use this command to import the data:
+// mongoimport --db your_database_name --collection zipcodes --file zip.json --jsonArray
+
+// Step 2: Create the indexes
+
+// Single-field index on the 'city' field
+db.zipcodes.createIndex({ "city": 1 });
+
+// Composite index on 'state' and 'city' fields
+db.zipcodes.createIndex({ "state": 1, "city": 1 });
+
+// Multikey index on the 'location' field (assuming it's an array or geospatial data)
+db.zipcodes.createIndex({ "location": "2dsphere" });
+
+// Step 3: Execute the queries
+
+// 3.1: Display all cities having population above 1600
+db.zipcodes.find({ "pop": { $gt: 1600 } });
+
+// 3.2: Display all cities in state "KS"
+db.zipcodes.find({ "state": "KS" });
+
+// 3.3: Display location of city "TIMKEN"
+db.zipcodes.find({ "city": "TIMKEN" }, { "location": 1 });
+
+
+
+
+----that isssss
+----mongoimport --db your_database_name --collection zipcodes --file zip.json --jsonArray
+

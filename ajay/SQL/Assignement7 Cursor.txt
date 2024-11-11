@@ -1,0 +1,54 @@
+-- Create the O_ROLL table (Old Data)
+CREATE TABLE O_ROLL 
+( 
+    rollno NUMBER(10) NOT NULL,  
+    name   VARCHAR2(50),  
+    gender CHAR(1), 
+    CONSTRAINT pk1_o PRIMARY KEY (rollno) 
+); 
+
+-- Create the N_ROLL table (New Data)
+CREATE TABLE N_ROLL 
+( 
+    rollno NUMBER(10) NOT NULL,  
+    name   VARCHAR2(50),  
+    gender CHAR(1) 
+); 
+
+-- Insert some data into O_ROLL (Old Data)
+INSERT INTO O_ROLL VALUES (2001, 'xyz', 'M'); 
+INSERT INTO O_ROLL VALUES (2002, 'pqr', 'F'); 
+INSERT INTO O_ROLL VALUES (2005, 'abc', 'F'); 
+
+-- Insert some data into N_ROLL (New Data)
+INSERT INTO N_ROLL VALUES (2001, 'xyz', 'M'); 
+
+-- PL/SQL Block using an Explicit Cursor to Merge Data from O_ROLL to N_ROLL
+DECLARE
+    a N_ROLL.rollno%type;    -- Variable to store rollno
+    b N_ROLL.name%type;      -- Variable to store name
+    c N_ROLL.gender%type;    -- Variable to store gender
+    n NUMBER;                -- Counter to store number of existing records
+    CURSOR rollcall IS      -- Explicit Cursor to fetch data from O_ROLL
+    SELECT rollno, name, gender FROM O_ROLL;
+BEGIN
+    OPEN rollcall; 
+    LOOP
+        FETCH rollcall INTO a, b, c;  -- Fetch record into variables
+        EXIT WHEN rollcall%NOTFOUND;   -- Exit when no more records are found
+
+        -- Check if the record already exists in N_ROLL
+        BEGIN
+            SELECT 1 INTO n FROM N_ROLL WHERE rollno = a;  -- Try to find matching rollno
+            -- If no exception, data exists
+            dbms_output.put_line('Data already exists for Roll No: ' || a);
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                -- If no data found, insert new record into N_ROLL
+                INSERT INTO N_ROLL VALUES (a, b, c); 
+                dbms_output.put_line('Inserted Roll No: ' || a);
+        END; 
+    END LOOP;
+    CLOSE rollcall;  -- Close the cursor
+END;
+/
